@@ -3,7 +3,7 @@
   <img src="./assets/logo.png" alt="TermX Logo" width="200"/>
 </p>
 
-**TermX** is a fully functional web-based terminal application powered by **Xterm.js** **FastAPI** and **Socket.IO**. This project allows you to run terminal commands inside your browser with real-time updates and an interactive experience.
+**TermX** is a fully functional web-based terminal application powered by **Xterm.js**, **FastAPI** and **Socket.IO**. This project allows you to run terminal commands inside your browser with real-time updates and an interactive experience.
 
 ---
 
