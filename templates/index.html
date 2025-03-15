@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>TermX</title>
+    
+    <!-- Favicon here -->
+    <link rel="icon" type="image/png" href="/static/images/favicon.png" />
+
+    <!-- Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap">
+
+    <!-- Local xterm CSS -->
+    <link rel="stylesheet" href="/static/css/xterm.min.css" />
+
+    <style>
+      /* Variables for easy theme adjustments */
+      :root {
+        --primary-color: #00fff7;
+        --secondary-color: #ff00ff;
+        --background-dark: #0d0d0d;
+        --border-color: #333;
+        --text-color: #ffffff;
+        --success-color: #00ff99;
+        --error-color: #ff0040;
+        --glow-color: rgba(0, 255, 247, 0.5);
+      }
+
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        font-family: 'Roboto', sans-serif;
+        color: var(--text-color);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        /* Background for the whole page */
+        background: radial-gradient(circle at 50% 50%, #0e0e0e 0%, #050505 100%);
+        background-size: 400% 400%;
+        animation: backgroundPulse 15s ease infinite;
+      }
+
+
+
+      /* Add the effects inside terminal-container but behind terminal-wrapper */
+      /* This is BEHIND the terminal-wrapper */
+      .background-effects {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 0;
+        pointer-events: none;
+      }
+
+
+      .background-effects::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(120deg, rgba(0, 255, 255, 0.05), rgba(255, 0, 255, 0.05));
+        background-size: 300% 300%;
+        animation: holo-shimmer 12s ease-in-out infinite;
+        z-index: 1;
+      }
+
+      .background-effects::after {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background:
+          repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 1px, transparent 2px),
+          repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 2px);
+        background-size: 60px 60px;
+        animation: gridMove 40s linear infinite;
+        z-index: 2;
+      }
+
+      /* Sweep effect */
+      .background-effects .sweep {
+        content: "";
+        position: absolute;
+        top: 0; left: -50%; width: 200%; height: 100%;
+        background: linear-gradient(
+          60deg,
+          rgba(255, 255, 255, 0) 40%,
+          rgba(255, 255, 255, 0.05) 50%,
+          rgba(255, 255, 255, 0) 60%
+        );
+        animation: sweep 10s infinite linear;
+        z-index: 3;
+      }
+      /* --------------------
+        Keyframes for motion
+      ----------------------- */
+      @keyframes backgroundPulse {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      @keyframes holo-shimmer {
+        0% { background-position: 0% 50%; opacity: 0.04; }
+        50% { background-position: 100% 50%; opacity: 0.08; }
+        100% { background-position: 0% 50%; opacity: 0.04; }
+      }
+
+      @keyframes gridMove {
+        0% { background-position: 0 0, 0 0; }
+        100% { background-position: 60px 60px, 60px 60px; }
+      }
+
+      @keyframes noiseMove {
+        0% { background-position: 0 0; }
+        100% { background-position: 100px 100px; }
+      }
+
+      @keyframes sweep {
+        0% { transform: translateX(-100%) skewX(-20deg); }
+        100% { transform: translateX(100%) skewX(-20deg); }
+      }
+
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(15, 15, 15, 0.9);
+        padding: 0 32px;
+        height: 70px;
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: 0 0 15px var(--glow-color);
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+      }
+
+      .logo a {
+        display: inline-block; /* Change this from flex or block */
+        position: relative;    /* Needed for glitch pseudo-elements */
+        color: var(--text-color);
+        font-size: 1.2em;
+        text-decoration: none;
+        font-weight: 700;
+        text-shadow: 0 0 10px var(--primary-color);
+      }
+
+
+      .logo-icon {
+        height: 35px;   /* Adjust based on your design */
+        width: 35px;    /* Adjust as needed */
+        margin-right: 10px;
+        filter: drop-shadow(0 0 5px var(--border-color));
+      }
+
+
+      /* Header Controls */
+      .header-controls {
+        display: flex;
+        align-items: center;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        margin-right: 20px;
+      }
+
+      .led {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        margin-right: 8px;
+        background-color: var(--error-color);
+        box-shadow: 0 0 10px var(--error-color);
+        transition: all 0.3s ease;
+      }
+
+      .led.connected {
+        background-color: var(--success-color);
+        box-shadow: 0 0 12px var(--success-color);
+      }
+
+      .actions .btn {
+        margin-left: 8px;
+        padding: 8px 14px;
+        border: 1px solid var(--primary-color);
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        cursor: pointer;
+        font-weight: 500;
+        box-shadow: 0 0 10px var(--primary-color);
+        transition: all 0.3s ease;
+      }
+
+      .actions .btn:hover {
+        background: var(--primary-color);
+        color: #000;
+        box-shadow: 0 0 20px var(--primary-color);
+      }
+
+      .actions .btn.danger {
+        border-color: var(--error-color);
+        box-shadow: 0 0 10px var(--error-color);
+      }
+
+      .actions .btn.danger:hover {
+        background: var(--error-color);
+        color: #000;
+        box-shadow: 0 0 20px var(--error-color);
+      }
+
+      .system-bar {
+        display: flex;
+        justify-content: space-around;
+        background: rgba(20, 20, 20, 0.9);
+        color: #ccc;
+        font-size: 0.85em;
+        padding: 6px 0;
+        box-shadow: 0 0 10px rgba(0,255,255,0.3);
+      }
+
+      .terminal-container {
+        position: relative;
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+
+
+      /* Background holograms */
+      .terminal-container::before {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 20% 40%, rgba(255, 0, 255, 0.1), transparent 70%),
+                    radial-gradient(circle at 80% 60%, rgba(0, 255, 255, 0.1), transparent 70%);
+        animation: hologramMove 10s ease-in-out infinite;
+        z-index: 0;
+      }
+
+      @keyframes hologramMove {
+        0% { background-position: 0% 0%; }
+        50% { background-position: 100% 100%; }
+        100% { background-position: 0% 0%; }
+      }
+
+      /* Terminal is always on top of background */
+      .terminal-wrapper {
+        position: relative; /* or absolute if you want */
+        z-index: 10;
+        width: 90%;
+        height: 90%;
+        max-width: 1200px;
+        background: rgba(20, 20, 20, 0.9);
+        border-radius: 16px;
+        box-shadow: 0 0 40px var(--glow-color);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: box-shadow 0.3s ease, transform 0.3s ease;
+      }
+
+      .terminal-wrapper:hover {
+        box-shadow: 0 0 80px var(--primary-color);
+        transform: scale(1.02);
+      }
+
+      .xterm {
+        display: flex !important;
+        flex: 1;
+        width: 100% !important;
+        height: 100% !important;
+        font-family: 'Roboto Mono', monospace !important;
+        font-size: 14px;
+        background-color: rgba(30, 30, 30, 0.95) !important;
+        color: var(--text-color) !important;
+      }
+
+      /* Scrollbars */
+      .xterm-viewport::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      .xterm-viewport::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+      }
+
+      /* Glitch effect refinement */
+      .glitch {
+        position: relative;
+        color: var(--text-color);
+        font-size: 1.4em;
+        font-weight: 700;
+        letter-spacing: 2px;
+        display: inline-block;
+        text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
+        animation: glitch-flicker 2s infinite;
+      }
+
+      .glitch::before,
+      .glitch::after {
+        content: attr(data-text);
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        overflow: hidden;
+        color: var(--secondary-color);
+        z-index: -1;
+      }
+
+      .glitch::before {
+        left: 2px;
+        text-shadow: -1px 0 red;
+        clip: rect(0, 900px, 0, 0);
+        animation: glitch-anim-before 2.5s infinite linear alternate-reverse;
+      }
+
+      .glitch::after {
+        left: -2px;
+        text-shadow: -1px 0 blue;
+        clip: rect(0, 900px, 0, 0);
+        animation: glitch-anim-after 3s infinite linear alternate-reverse;
+      }
+
+      /* Glitch keyframes refined for horizontal flicker */
+      @keyframes glitch-anim-before {
+        0% { clip: rect(10px, 9999px, 15px, 0); }
+        10% { clip: rect(30px, 9999px, 35px, 0); transform: translateX(-2px); }
+        20% { clip: rect(5px, 9999px, 10px, 0); transform: translateX(2px); }
+        30% { clip: rect(40px, 9999px, 45px, 0); transform: translateX(-2px); }
+        100% { clip: rect(25px, 9999px, 30px, 0); transform: translateX(2px); }
+      }
+
+      @keyframes glitch-anim-after {
+        0% { clip: rect(50px, 9999px, 55px, 0); }
+        10% { clip: rect(70px, 9999px, 75px, 0); transform: translateX(2px); }
+        20% { clip: rect(10px, 9999px, 15px, 0); transform: translateX(-2px); }
+        30% { clip: rect(90px, 9999px, 95px, 0); transform: translateX(2px); }
+        100% { clip: rect(65px, 9999px, 70px, 0); transform: translateX(-2px); }
+      }
+
+      /* Flicker / pulse glow */
+      @keyframes glitch-flicker {
+        0%, 100% { opacity: 1; }
+        45% { opacity: 0.8; }
+        50% { opacity: 0.6; }
+        55% { opacity: 0.8; }
+      }
+
+      @keyframes holo-shimmer {
+        0% { background-position: 0% 50%; opacity: 0.03; }
+        50% { background-position: 100% 50%; opacity: 0.08; }
+        100% { background-position: 0% 50%; opacity: 0.03; }
+      }
+
+    </style>
+
+  </head>
+  <body>
+    
+    <div class="header">
+      <div class="logo">
+        <img src="/static/images/favicon-big.png" alt="Logo" class="logo-icon" />
+        <a href="#">
+          <span class="glitch" data-text="TermX">Term<span>X</span></span>
+        </a>
+      </div>
+      
+  
+      <div class="header-controls">
+        <div class="status">
+          <span class="led connected" id="led"></span>
+          <span id="status-text">Connected</span>
+        </div>
+      
+        <div class="actions">
+          <button class="btn" id="reconnect-btn">Reconnect</button>
+          <button class="btn danger" id="disconnect-btn">Disconnect</button>
+        </div>
+      </div>
+    </div>
+  
+    <!-- System Info Bar -->
+    <div class="system-bar">
+      <div id="cpu-usage">CPU: --%</div>
+      <div id="ram-usage">RAM: -- / --</div>
+      <div id="ping">Ping: --ms</div>
+      <div id="session-id">Session ID: --</div>
+    </div>
+    
+  
+    <!-- Terminal Area -->
+    <div class="terminal-container">
+      
+      <!-- Background goes FIRST -->
+      <div class="background-effects">
+        <div class="sweep"></div>
+      </div>
+
+      <!-- Terminal content on top -->
+      <div class="terminal-wrapper" id="terminal"></div>
+
+    </div>
+
+
+
+
+    <!-- xtermjs -->
+    <script src="/static/js/xterm.min.js"></script>
+
+    <!-- xtermjs addons -->
+    <script src="/static/js/addon-fit.js"></script>
+    <script src="/static/js/addon-web-links.js"></script>
+    <script src="/static/js/addon-search.js"></script>
+
+    <!-- Socket.IO -->
+    <script src="/static/js/socket.io.min.js"></script>
+
+
+    <script>
+      localStorage.debug = '*';
+
+      // ====== TERMINAL SETUP ======
+      const terminalContainer = document.getElementById("terminal");
+
+      const term = new Terminal({
+        cols: 80,
+        rows: 24,
+        scrollback: 1000,
+        cursorBlink: true,
+        theme: {}
+      });
+
+      const fitAddon = new FitAddon.FitAddon();
+      const webLinksAddon = new WebLinksAddon.WebLinksAddon();
+      const searchAddon = new SearchAddon.SearchAddon();
+
+      term.loadAddon(fitAddon);
+      term.loadAddon(webLinksAddon);
+      term.loadAddon(searchAddon);
+
+      term.attachCustomKeyEventHandler(customKeyEventHandler);
+
+      term.open(terminalContainer);
+      fitAddon.fit();
+
+      term.writeln("Welcome to TermX!");
+      term.writeln("Use ctrl+shift+x to copy and ctrl+shift+v to paste.\n");
+
+      // ====== DOM ELEMENTS ======
+      const statusText = document.getElementById("status-text");
+      const ledIndicator = document.getElementById("led");
+      const reconnectBtn = document.getElementById("reconnect-btn");
+      const disconnectBtn = document.getElementById("disconnect-btn");
+
+      // ====== SOCKET HANDLING ======
+      let socket = null;
+
+      function updateStatus(isConnected) {
+        if (isConnected) {
+          statusText.textContent = "Connected";
+          ledIndicator.classList.add("connected");
+          ledIndicator.classList.remove("disconnected");
+        } else {
+          statusText.textContent = "Disconnected";
+          ledIndicator.classList.add("disconnected");
+          ledIndicator.classList.remove("connected");
+        }
+      }
+
+      function connectSocket() {
+        if (socket && socket.connected) {
+          console.log("Already connected");
+          return;
+        }
+
+        console.log("Connecting socket...");
+        socket = io("/pty", {
+          path: "/socket.io",
+          transports: ["websocket"]
+        });
+
+        socket.on("connect", () => {
+          console.log("Socket.IO connected");
+          updateStatus(true);
+          fitToScreen();
+        });
+
+        socket.on("disconnect", () => {
+          console.log("Socket.IO disconnected");
+          updateStatus(false);
+          term.writeln("\r\n[Session disconnected]\r\n");
+        });
+
+        socket.on("pty-output", (data) => {
+          console.log("Received output:", data.output);
+          term.write(data.output);
+        });
+
+        // ====== Listen to real-time system stats (inside connectSocket!) ======
+        socket.on("system-stats", (data) => {
+          console.log("System Stats:", data);
+
+          document.getElementById("cpu-usage").textContent = `CPU: ${data.cpu}`;
+          document.getElementById("ram-usage").textContent = `RAM: ${data.ram}`;
+          document.getElementById("ping").textContent = `Ping: ${data.ping}`;
+          document.getElementById("session-id").textContent = `Session ID: ${data.session}`;
+        });
+      }
+
+      function disconnectSocket() {
+        if (socket && socket.connected) {
+          console.log("Disconnecting socket...");
+          socket.disconnect();
+          updateStatus(false);
+          term.writeln("\r\n[Session disconnected]\r\n");
+        } else {
+          console.log("Socket already disconnected");
+        }
+      }
+
+      function reconnectSocket() {
+        disconnectSocket();
+        setTimeout(() => {
+          connectSocket();
+          term.writeln("\r\n[Reconnecting session...]\r\n");
+        }, 300);
+      }
+
+      // ====== BUTTON EVENT LISTENERS ======
+      reconnectBtn.addEventListener("click", reconnectSocket);
+      disconnectBtn.addEventListener("click", disconnectSocket);
+
+      // ====== TERMINAL INPUT HANDLING ======
+      term.onData((data) => {
+        if (socket && socket.connected) {
+          console.log("Terminal input:", data);
+          socket.emit("pty-input", { input: data });
+        } else {
+          term.writeln("\r\n[Disconnected: No active session]\r\n");
+        }
+      });
+
+      // ====== TERMINAL RESIZE HANDLING ======
+      function fitToScreen() {
+        fitAddon.fit();
+        const dims = { cols: term.cols, rows: term.rows };
+        console.log("Resizing pty to", dims);
+        if (socket && socket.connected) {
+          socket.emit("resize", dims);
+        }
+      }
+
+      window.addEventListener("resize", debounce(fitToScreen, 50));
+
+      // ====== UTILITY: DEBOUNCE FUNCTION ======
+      function debounce(func, waitMs) {
+        let timeout;
+        return (...args) => {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => func.apply(this, args), waitMs);
+        };
+      }
+
+      // ====== UTILITY: CLIPBOARD SHORTCUTS ======
+      function customKeyEventHandler(e) {
+        if (e.type !== "keydown") return true;
+
+        if (e.ctrlKey && e.shiftKey) {
+          const key = e.key.toLowerCase();
+          if (key === "v") {
+            navigator.clipboard.readText().then((text) => {
+              term.write(text);
+            });
+            return false;
+          } else if (key === "c" || key === "x") {
+            const selection = term.getSelection();
+            navigator.clipboard.writeText(selection);
+            term.focus();
+            return false;
+          }
+        }
+
+        return true;
+      }
+
+      // ====== INITIALIZE SOCKET ======
+      connectSocket();
+    </script>
+
+  </body>
+</html>

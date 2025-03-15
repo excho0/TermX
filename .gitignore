@@ -1,0 +1,38 @@
+# Python bytecode files
+*.pyc
+*.pyo
+__pycache__/
+
+# Virtual environment directories
+termx
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Distribution / packaging directories
+build/
+dist/
+*.egg-info/
+
+# IDE or editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+
+# Test or coverage reports
+*.log
+*.coverage
+nosetests.xml
+coverage.xml
+*.hypothesis/
+*.tox/
+
+# PyInstaller
+*.spec
+
+# Pycharm
+.idea/

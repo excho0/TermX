@@ -1,0 +1,13 @@
+# FastAPI framework and ASGI server
+fastapi>=0.70.0
+uvicorn>=0.15.0
+psutil
+
+# Async Socket.IO for Python with ASGI integration
+python-socketio[asgi]==5.12.1
+
+# Template rendering with Jinja2
+jinja2>=3.0.0
+
+# Windows-only dependency for ConPTY via pywinpty (provides the winpty module)
+pywinpty==2.0.14; sys_platform == "win32"
